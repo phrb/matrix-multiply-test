@@ -55,12 +55,35 @@ design_distribution = DesignDistribution(NamedTuple{getfield.(model.rhs, :sym)}(
 
 random_design = rand(design_distribution, 10)
 
-random_design.matrix[!, :response] = y.(eachrow(random_design.matrix[:, :]))
+random_design.matrix[!, :response] = y.(eachrow(random_design.matrix[:,
+                                                                     collect(keys(random_design.factors))]))
 random_results = copy(random_design.matrix)
 
 for i = 1:repetitions
-    random_design.matrix[!, :response] = y.(eachrow(random_design.matrix[:, :]))
+    random_design.matrix[!, :response] = y.(eachrow(random_design.matrix[:,
+                                                                         collect(keys(random_design.factors))]))
     append!(random_results, copy(random_design.matrix))
 end
 
 CSV.write("random_experiment.csv", random_results)
+
+# Random Design for Interactions
+Random.seed!(8418172)
+
+design_distribution = DesignDistribution(NamedTuple{getfield.(model.rhs, :sym)}(
+    repeat([DiscreteNonParametric([-1, 1],
+                                  [0.5, 0.5])], 16)))
+
+random_design = rand(design_distribution, 140)
+
+random_design.matrix[!, :response] = y.(eachrow(random_design.matrix[:,
+                                                                     collect(keys(random_design.factors))]))
+random_results = copy(random_design.matrix)
+
+for i = 1:repetitions
+    random_design.matrix[!, :response] = y.(eachrow(random_design.matrix[:,
+                                                                         collect(keys(random_design.factors))]))
+    append!(random_results, copy(random_design.matrix))
+end
+
+CSV.write("random_experiment_140.csv", random_results)

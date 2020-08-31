@@ -25,21 +25,39 @@ function y(x)
     return exec_time
 end
 
+function interactions(factors)
+    interactions = []
+    filtered_factors = copy(factors)
+
+    for f in factors
+        filtered_factors = filter!(x -> x != f, filtered_factors)
+        if length(filtered_factors) > 0
+            for f2 in filtered_factors
+                push!(interactions, term(f) & term(f2))
+            end
+        end
+    end
+
+    sum(interactions)
+end
+
 results = CSV.read("screening_matrix.csv", DataFrame)
 
 rename!(results, replace.(names(results), "-" => "_"))
 rename!(results, replace.(names(results), "R" => "r"))
 rename!(results, replace.(names(results), "Dummy " => "dummy_"))
 
-screening_model = @formula(response ~ constprop + instcombine + argpromotion + jump_threading +
-                           lcssa + licm + loop_deletion + loop_extract + loop_reduce +
-                           loop_rotate + loop_simplify + loop_unroll + loop_unroll_and_jam +
-                           loop_unswitch + mem2reg + memcpyopt + dummy_1 + dummy_2 + dummy_3)
+factors = [:constprop, :instcombine, :argpromotion, :jump_threading, :lcssa,
+           :licm, :loop_deletion, :loop_extract, :loop_reduce, :loop_rotate,
+           :loop_simplify, :loop_unroll, :loop_unroll_and_jam, :loop_unswitch, :mem2reg,
+           :memcpyopt]
 
-model = @formula(response ~ constprop + instcombine + argpromotion + jump_threading +
-                 lcssa + licm + loop_deletion + loop_extract + loop_reduce +
-                 loop_rotate + loop_simplify + loop_unroll + loop_unroll_and_jam +
-                 loop_unswitch + mem2reg + memcpyopt)
+screening_model = term(:response) ~ (sum(term.(factors))..., sum(term.([:dummy_1, :dummy_2, :dummy_3]))...)
+model = term(:response) ~ sum(term.(factors))
+
+# 136 model terms
+interactions_model = term(:response) ~ (sum(term.(factors))..., interactions(factors)...)
+println(interactions_model)
 
 screening_fit = lm(screening_model, results)
 println(screening_fit)
